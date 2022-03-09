@@ -1,5 +1,15 @@
 {
-  "extends": [
-    "config:base"
+  "extends": ["config:base"],
+  "packageRules": [
+    {
+      "depTypeList": ["devDependencies"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "depTypeList": ["dependencies"],
+      "automerge": false,
+      "automergeType": "branch"
+    }
   ]
 }
