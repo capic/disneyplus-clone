@@ -1,45 +1,101 @@
-import { signInWithPopup } from 'firebase/auth'
-import React from 'react'
+import { signInWithPopup, signOut } from 'firebase/auth'
+import React, { useEffect } from 'react'
 import styled from 'styled-components'
 import { auth, provider } from '../firebase'
+import { useAppDispatch, useAppSelector } from '../hooks/useAppRedux'
+import { setSignOutState, setUserLoginDetails } from '../features/user/userSlice'
+import { User } from '@firebase/auth'
+import { useNavigate } from 'react-router-dom'
 
 const Header = () => {
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const userName = useAppSelector((state) => state.user.name)
+  const userPhoto = useAppSelector((state) => state.user.photo)
+
+  useEffect(() => {
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setUser(user)
+        navigate('/home')
+      }
+    })
+  }, [userName])
+
   const handleAuth = async () => {
-    const result = await signInWithPopup(auth, provider)
-    console.log({result})
+    if (!userName) {
+      try {
+        const result = await signInWithPopup(auth, provider)
+        setUser(result.user)
+      } catch (error) {
+        alert(error)
+      }
+    } else {
+      try {
+        await signOut(auth)
+        dispatch(setSignOutState())
+        navigate('/')
+      } catch (error) {
+        alert(error)
+      }
+    }
   }
+
+  const setUser = (user: User) => {
+    dispatch(
+      setUserLoginDetails({ name: user.displayName, photo: user.photoURL, email: user.email })
+    )
+  }
+
   return (
     <Nav>
       <Logo href="/">
         <img src="/images/logo.svg" alt="Disney+" />
       </Logo>
-      <NavMenu role="menu">
-        <a href="/home">
-          <img src="/images/home-icon.svg" alt="Home" />
-          <span>HOME</span>
-        </a>
-        <a href="/search">
-          <img src="/images/search-icon.svg" alt="Search" />
-          <span>SEARCH</span>
-        </a>
-        <a href="/watchlist">
-          <img src="/images/watchlist-icon.svg" alt="Watchlist" />
-          <span>WATCHLIST</span>
-        </a>
-        <a href="/originals">
-          <img src="/images/original-icon.svg" alt="Originals" />
-          <span>ORIGINALS</span>
-        </a>
-        <a href="/movies">
-          <img src="/images/movie-icon.svg" alt="Movies" />
-          <span>MOVIES</span>
-        </a>
-        <a href="/series">
-          <img src="/images/series-icon.svg" alt="Series" />
-          <span>SERIES</span>
-        </a>
-      </NavMenu>
-      <Login role="button" aria-label="login" onClick={handleAuth}>Login</Login>
+      {!userName ? (
+        <Login role="button" aria-label="login" onClick={handleAuth}>
+          Login
+        </Login>
+      ) : (
+        <>
+          <NavMenu role="menu">
+            <a href="/home">
+              <img src="/images/home-icon.svg" alt="Home" />
+              <span>HOME</span>
+            </a>
+            <a href="/search">
+              <img src="/images/search-icon.svg" alt="Search" />
+              <span>SEARCH</span>
+            </a>
+            <a href="/watchlist">
+              <img src="/images/watchlist-icon.svg" alt="Watchlist" />
+              <span>WATCHLIST</span>
+            </a>
+            <a href="/originals">
+              <img src="/images/original-icon.svg" alt="Originals" />
+              <span>ORIGINALS</span>
+            </a>
+            <a href="/movies">
+              <img src="/images/movie-icon.svg" alt="Movies" />
+              <span>MOVIES</span>
+            </a>
+            <a href="/series">
+              <img src="/images/series-icon.svg" alt="Series" />
+              <span>SERIES</span>
+            </a>
+          </NavMenu>
+          <SignOut>
+            {userPhoto ? (
+              <UserImg src={userPhoto} alt={userName} />
+            ) : (
+              <UserImg src="/images/default-user.png" />
+            )}
+            <DropDown>
+              <span onClick={handleAuth}>Sign out</span>
+            </DropDown>
+          </SignOut>
+        </>
+      )}
     </Nav>
   )
 }
@@ -78,21 +134,22 @@ const NavMenu = styled.div`
   flex-flow: row nowrap;
   height: 100%;
   justify-content: flex-end;
-  margin: 0px;
   padding: 0px;
   position: relative;
-  margin-right: auto;
-  margin-left: 25px;
+  margin: 0px auto 0px 25px;
+
   a {
     display: flex;
     align-items: center;
     padding: 0 12px;
+
     img {
       height: 20px;
       min-width: 20px;
       width: 20px;
       z-index: auto;
     }
+
     span {
       color: rgb(249, 249, 249);
       font-size: 13px;
@@ -101,6 +158,7 @@ const NavMenu = styled.div`
       padding: 2px 0px;
       white-space: nowrap;
       position: relative;
+
       &:before {
         background-color: rgb(249, 249, 249);
         border-radius: 0px 0px 4px 4px;
@@ -118,6 +176,7 @@ const NavMenu = styled.div`
         width: auto;
       }
     }
+
     &:hover {
       span:before {
         transform: scaleX(1);
@@ -126,6 +185,7 @@ const NavMenu = styled.div`
       }
     }
   }
+
   /* @media (max-width: 768px) {
     display: none;
   } */
@@ -139,6 +199,7 @@ const Login = styled.a`
   border: 1px solid #f9f9f9;
   border-radius: 4px;
   transition: all 0.2s ease 0s;
+  cursor: pointer;
 
   &:hover {
     background-color: #f9f9f9;
@@ -146,5 +207,45 @@ const Login = styled.a`
     border-color: transparent;
   }
 `
+
+const UserImg = styled.img`
+  height: 100%;
+`
+
+const DropDown = styled.div`
+  position: absolute;
+  top: 48px;
+  right: 0px;
+  background: rgb(19, 19, 19);
+  border: 1px solid rgba(151, 151, 151, 0.34);
+  border-radius: 4px;
+  box-shadow: rgb(0 0 0 / 50%) 0px 0px 18px 0px;
+  padding: 10px;
+  font-size: 14px;
+  letter-spacing: 3px;
+  width: 100px;
+  opacity: 0;
+`;
+
+const SignOut = styled.div`
+  position: relative;
+  height: 48px;
+  width: 48px;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  ${UserImg} {
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+  }
+  &:hover {
+    ${DropDown} {
+      opacity: 1;
+      transition-duration: 1s;
+    }
+  }
+`;
 
 export default Header
