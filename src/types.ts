@@ -1,5 +1,15 @@
 export interface IUser {
-  name: string | null
-  email: string | null
-  photo: string | null
+  name: string
+  email: string
+  photo: string
+}
+
+export interface IMovie {
+  backgroundImg: string
+  cardImg: string
+  description: string
+  subTitle: string
+  title: string
+  type: string
+  id: string
 }

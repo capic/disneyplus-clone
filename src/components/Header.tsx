@@ -10,23 +10,27 @@ import { useNavigate } from 'react-router-dom'
 const Header = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const userName = useAppSelector((state) => state.user.name)
-  const userPhoto = useAppSelector((state) => state.user.photo)
+  const user = useAppSelector((state) => state.user.user)
 
   useEffect(() => {
     auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        setUser(user)
-        navigate('/home')
-      }
+      handleAuthStateChanged(user)
     })
-  }, [userName])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleAuthStateChanged = (user: User | null) => {
+    if (user) {
+      setUser(user)
+      navigate('/home')
+    } else {
+      navigate('/')
+    }
+  }
 
   const handleAuth = async () => {
-    if (!userName) {
+    if (!user) {
       try {
-        const result = await signInWithPopup(auth, provider)
-        setUser(result.user)
+        await signInWithPopup(auth, provider)
       } catch (error) {
         alert(error)
       }
@@ -34,7 +38,6 @@ const Header = () => {
       try {
         await signOut(auth)
         dispatch(setSignOutState())
-        navigate('/')
       } catch (error) {
         alert(error)
       }
@@ -43,7 +46,9 @@ const Header = () => {
 
   const setUser = (user: User) => {
     dispatch(
-      setUserLoginDetails({ name: user.displayName, photo: user.photoURL, email: user.email })
+      setUserLoginDetails({
+        user: { name: user.displayName ?? '', photo: user.photoURL ?? '', email: user.email ?? '' },
+      })
     )
   }
 
@@ -52,7 +57,7 @@ const Header = () => {
       <Logo href="/">
         <img src="/images/logo.svg" alt="Disney+" />
       </Logo>
-      {!userName ? (
+      {!user ? (
         <Login role="button" aria-label="login" onClick={handleAuth}>
           Login
         </Login>
@@ -85,8 +90,8 @@ const Header = () => {
             </a>
           </NavMenu>
           <SignOut>
-            {userPhoto ? (
-              <UserImg src={userPhoto} alt={userName} />
+            {user.photo ? (
+              <UserImg src={user.photo} alt={user.name} />
             ) : (
               <UserImg src="/images/default-user.png" />
             )}
@@ -225,7 +230,7 @@ const DropDown = styled.div`
   letter-spacing: 3px;
   width: 100px;
   opacity: 0;
-`;
+`
 
 const SignOut = styled.div`
   position: relative;
@@ -246,6 +251,6 @@ const SignOut = styled.div`
       transition-duration: 1s;
     }
   }
-`;
+`
 
 export default Header
